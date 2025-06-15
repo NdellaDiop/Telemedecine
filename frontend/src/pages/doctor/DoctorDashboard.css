@@ -1,0 +1,209 @@
+/* Réinitialisation des styles de base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+  }
+  
+  body {
+    background-color: #f5f5f5;
+    color: #333;
+  }
+  
+  /* En-tête et navigation principale */
+  header {
+    background-color: #333;
+    color: white;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 20px;
+  }
+  
+  .user-avatar {
+    font-size: 24px;
+    margin-bottom: 5px;
+  }
+  
+  /* Menu de navigation principal */
+  .main-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .nav-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .nav-button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .nav-icon {
+    display: inline-block;
+    width: 20px;
+  }
+  
+  /* Section Agenda */
+  .agenda-section {
+    padding: 20px;
+  }
+  
+  .agenda-section h1 {
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .search-container {
+    display: flex;
+    margin-bottom: 20px;
+  }
+  
+  .search-input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px 0 0 5px;
+    width: 250px;
+  }
+  
+  .search-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-left: none;
+    border-radius: 0 5px 5px 0;
+    padding: 8px 15px;
+    cursor: pointer;
+  }
+  
+  .availability-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 8px 15px;
+    margin-left: 10px;
+    cursor: pointer;
+  }
+  
+  /* Section Dossier Médical */
+  .medical-record {
+    padding: 20px;
+    border-top: 1px solid #ddd;
+  }
+  
+  .medical-record h1 {
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .personal-info h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  
+  .info-group {
+    margin-bottom: 15px;
+  }
+  
+  .info-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .info-value {
+    margin-bottom: 15px;
+  }
+  
+  /* Documents médicaux */
+  .documents-section h2 {
+    font-size: 24px;
+    margin: 20px 0 15px;
+    color: #333;
+  }
+  
+  .documents-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .documents-table th {
+    background-color: #f0f0f0;
+    padding: 10px;
+    text-align: left;
+    border-bottom: 2px solid #ddd;
+  }
+  
+  .documents-table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .view-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 5px 10px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #333;
+  }
+  
+  .view-button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  /* Back button */
+  .back-button {
+    display: inline-block;
+    padding: 5px 10px;
+    margin-bottom: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .main-nav {
+      flex-direction: column;
+    }
+    
+    .search-container {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .search-input {
+      width: 100%;
+      border-radius: 5px;
+    }
+    
+    .search-button {
+      border-left: 1px solid #ccc;
+      border-radius: 5px;
+      width: fit-content;
+    }
+    
+    .documents-table {
+      font-size: 14px;
+    }
+  }

@@ -1,0 +1,40 @@
+.homepage {
+  min-height: 100vh;
+}
+
+.hero-content {
+  padding: 6rem 0;
+}
+
+section.py-5 {
+  padding-top: 4rem !important;
+  padding-bottom: 4rem !important;
+}
+
+.transition-hover {
+  transition: transform 0.3s ease;
+}
+
+.transition-hover:hover {
+  transform: translateY(-5px);
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+header nav ul li a {
+  color: #333;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+header nav ul li a:hover {
+  color: #007bff; /* Couleur bleue pour le survol */
+}
+
+footer {
+  margin-top: 3rem;
+}
