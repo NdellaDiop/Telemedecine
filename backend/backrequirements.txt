@@ -1,0 +1,8 @@
+Flask==3.1.0
+Flask-Cors==4.0.1  # Your code uses CORS(app, resources={...}), which is a Flask-Cors feature.
+Flask-JWT-Extended==4.6.0 # Version 4.x is widely used and stable
+Flask-Mail==0.9.1 # Common stable version for Flask-Mail
+python-dotenv==1.0.0 # Common stable version for dotenv
+psycopg2-binary==2.9.9 # The binary version is easier to install without compiling
+bcrypt==3.2.0 # From your previous list, and used in security/password_utils
+requests==2.32.3 # Used for Orthanc server interaction

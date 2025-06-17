@@ -119,56 +119,52 @@ function PatientAppointments() {
 
   // Charger les RDV du patient
   const loadAppointments = async () => {
-    // Triple vérification pour éviter les erreurs
-    if (!user) {
-      console.log('Utilisateur non disponible (null)');
+    if (!user || !user.id) {
+      console.log('🔍 User pas encore chargé, skip loadAppointments');
       return;
     }
     
-    if (!user.id) {
-      console.log('ID utilisateur non disponible');
-      return;
-    }
-
-    if (authLoading) {
-      console.log('Authentification en cours...');
-      return;
-    }
-
-    console.log('Chargement des RDV pour utilisateur:', user.id);
-
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/appointments/${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
-      // TODO: Remplacer par votre vraie API
-      // const response = await axios.get(`${API_BASE_URL}/appointments/patient/${user.id}`, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      
-      // Pour l'instant, charger depuis localStorage UNIQUEMENT les RDV de ce patient
-      const storedAppointments = localStorage.getItem(`appointments_patient_${user.id}`);
-      if (storedAppointments) {
-        try {
-          const parsedAppointments = JSON.parse(storedAppointments);
-          
-          // IMPORTANT: Filtrer pour ne garder que les RDV de ce patient
-          const patientAppointments = parsedAppointments.filter(apt => 
-            apt.patient_id === user.id || apt.patient_id === parseInt(user.id)
-          );
-          
-          console.log('RDV chargés depuis localStorage:', patientAppointments);
-          setAppointments(patientAppointments);
-        } catch (parseError) {
-          console.error('Erreur parsing appointments localStorage:', parseError);
-          setAppointments([]);
-        }
+      if (Array.isArray(response.data)) {
+        const formattedAppointments = response.data.map(apt => ({
+          id: apt.id,
+          date: apt.appointment_datetime.split('T')[0],
+          time: apt.appointment_datetime.split('T')[1].substring(0, 5),
+          doctor_id: apt.doctor_id,
+          doctor_name: apt.doctor_name,
+          specialty: apt.specialty,
+          reason: apt.reason,
+          status: apt.status || 'pending',
+          notes: apt.notes
+        }));
+        setAppointments(formattedAppointments);
       } else {
-        setAppointments([]);
+        setError('Format de réponse invalide');
       }
-      
     } catch (error) {
       console.error('Erreur chargement RDV:', error);
-      setAppointments([]);
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            setError('Session expirée. Veuillez vous reconnecter.');
+            break;
+          case 403:
+            setError('Vous n\'êtes pas autorisé à voir ces rendez-vous.');
+            break;
+          default:
+            setError('Erreur lors du chargement des rendez-vous.');
+        }
+      } else {
+        setError('Erreur de connexion au serveur.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -284,7 +280,6 @@ function PatientAppointments() {
 
   // Confirmer la réservation
   const handleConfirmBooking = async () => {
-    // Vérifier que l'utilisateur est disponible
     if (!user || !user.id) {
       setError('Erreur : informations utilisateur manquantes. Veuillez vous reconnecter.');
       return;
@@ -295,119 +290,53 @@ function PatientAppointments() {
       return;
     }
 
-    // Vérifier que le créneau est toujours disponible
-    const selectedSlot = availableSlots.find(slot => slot.time === bookingData.appointmentTime);
-    if (!selectedSlot || !selectedSlot.available) {
-      setError('Ce créneau n\'est plus disponible. Veuillez en choisir un autre.');
-      return;
-    }
-
     try {
       const token = localStorage.getItem('token');
-      const appointmentData = {
-        id: Date.now(), // ID temporaire
-        patient_id: parseInt(user.id), // S'assurer que c'est un nombre
-        patient_name: `${user.firstName} ${user.lastName || ''}`,
-        doctor_id: parseInt(selectedDoctor.id), // S'assurer que c'est un nombre
-        doctor_name: selectedDoctor.name,
-        specialty: selectedDoctor.speciality,
-        date: bookingData.appointmentDate,
-        time: bookingData.appointmentTime,
-        reason: bookingData.reason,
-        notes: bookingData.notes,
-        status: 'pending', // En attente de confirmation du médecin
-        created_at: new Date().toISOString()
-      };
-
-      // TODO: Remplacer par votre vraie API
-      // const response = await axios.post(`${API_BASE_URL}/appointments`, appointmentData, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-
-      // Pour l'instant, simulation avec localStorage
+      const appointmentDateTime = `${bookingData.appointmentDate}T${bookingData.appointmentTime}:00`;
       
-      // 1. Sauvegarder le RDV pour le patient (SEULEMENT ce patient)
-      const existingPatientAppointments = JSON.parse(localStorage.getItem(`appointments_patient_${user.id}`) || '[]');
-      
-      // Vérifier qu'on n'ajoute pas de doublons
-      const isDuplicate = existingPatientAppointments.some(apt => 
-        apt.doctor_id === appointmentData.doctor_id && 
-        apt.date === appointmentData.date && 
-        apt.time === appointmentData.time
+      const response = await axios.post(
+        `${API_BASE_URL}/appointments`,
+        {
+          patient_id: parseInt(user.id),
+          doctor_id: parseInt(selectedDoctor.id),
+          appointment_datetime: appointmentDateTime,
+          reason: bookingData.reason,
+          notes: bookingData.notes
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
       );
-      
-      if (isDuplicate) {
-        setError('Ce créneau est déjà réservé.');
-        return;
-      }
-      
-      existingPatientAppointments.push(appointmentData);
-      localStorage.setItem(`appointments_patient_${user.id}`, JSON.stringify(existingPatientAppointments));
 
-      // 2. Sauvegarder le RDV pour le médecin (pour ses notifications)
-      const doctorAppointments = JSON.parse(localStorage.getItem(`appointments_doctor_${selectedDoctor.id}`) || '[]');
-      doctorAppointments.push(appointmentData);
-      localStorage.setItem(`appointments_doctor_${selectedDoctor.id}`, JSON.stringify(doctorAppointments));
-
-      // 3. Créer une notification pour le médecin
-      await createDoctorNotification(selectedDoctor.id, appointmentData);
-
-      // 4. Marquer le créneau comme occupé
-      const scheduleKey = `doctor_schedule_${selectedDoctor.id}_${bookingData.appointmentDate}`;
-      const currentSchedule = JSON.parse(localStorage.getItem(scheduleKey) || '{}');
-      if (currentSchedule.availableSlots) {
-        currentSchedule.availableSlots = currentSchedule.availableSlots.map(slot => 
-          slot.time === bookingData.appointmentTime 
-            ? { ...slot, available: false, reason: 'Réservé' }
-            : slot
-        );
-        localStorage.setItem(scheduleKey, JSON.stringify(currentSchedule));
-      }
-
-      console.log('RDV créé:', appointmentData);
-      setMessage('✅ Demande de rendez-vous envoyée ! Le médecin va confirmer votre demande.');
+      if (response.data && response.data.appointment_id) {
+        await loadAppointments();
       setShowBookingModal(false);
-      loadAppointments(); // Recharger les RDV
-      
-      // Masquer le message après 5 secondes
-      setTimeout(() => setMessage(''), 5000);
-      
-    } catch (error) {
-      console.error('Erreur création RDV:', error);
-      setError(error.response?.data?.error || 'Erreur lors de la demande de rendez-vous.');
-    }
-  };
-
-  // Créer une notification pour le médecin
-  const createDoctorNotification = async (doctorId, appointmentData) => {
-    try {
-      // Vérifier que l'utilisateur est disponible
-      if (!user || !user.firstName) {
-        console.error('Données utilisateur manquantes pour la notification');
-        return;
+        setBookingData({
+          appointmentDate: '',
+          appointmentTime: '',
+          reason: '',
+          notes: ''
+        });
+        setMessage('✅ Rendez-vous créé avec succès !');
+      } else {
+        setError('Erreur lors de la création du rendez-vous');
       }
-
-      const notification = {
-        id: Date.now(),
-        userId: doctorId,
-        type: 'appointment_request',
-        title: 'Nouvelle demande de rendez-vous',
-        message: `${user.firstName} ${user.lastName || ''} souhaite prendre rendez-vous le ${new Date(appointmentData.date).toLocaleDateString('fr-FR')} à ${appointmentData.time}`,
-        data: appointmentData,
-        read: false,
-        createdAt: new Date().toISOString()
-      };
-
-      // Sauvegarder la notification
-      const doctorNotifications = JSON.parse(localStorage.getItem(`notifications_doctor_${doctorId}`) || '[]');
-      doctorNotifications.unshift(notification);
-      localStorage.setItem(`notifications_doctor_${doctorId}`, JSON.stringify(doctorNotifications));
-
-      // TODO: Envoyer notification push/email au médecin
-      console.log('Notification créée pour le médecin:', notification);
-      
     } catch (error) {
-      console.error('Erreur création notification:', error);
+      console.error('Erreur création rendez-vous:', error);
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            setError('Session expirée. Veuillez vous reconnecter.');
+            break;
+          case 403:
+            setError('Vous n\'êtes pas autorisé à créer ce rendez-vous.');
+            break;
+          default:
+            setError('Erreur lors de la création du rendez-vous.');
+        }
+      } else {
+        setError('Erreur de connexion au serveur.');
+      }
     }
   };
 
@@ -447,10 +376,20 @@ function PatientAppointments() {
     return maxDate.toISOString().split('T')[0];
   };
 
-  // (Duplicate handleDeleteAppointment removed here)
-
   // Nettoyer les RDV avec dates invalides
-  // (Supprimé car doublon)
+  const cleanInvalidAppointments = () => {
+    const validAppointments = appointments.filter(apt => {
+      const date = new Date(apt.date);
+      return !isNaN(date.getTime()) && apt.date && apt.time;
+    });
+    
+    if (validAppointments.length !== appointments.length) {
+      localStorage.setItem(`appointments_patient_${user.id}`, JSON.stringify(validAppointments));
+      setAppointments(validAppointments);
+      setMessage('✅ Rendez-vous invalides supprimés.');
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
 
   // Nettoyer complètement les données corrompues
   const resetAllAppointments = () => {
@@ -469,73 +408,29 @@ function PatientAppointments() {
     }
 
     try {
-      // Trouver le RDV à supprimer
-      const appointmentToDelete = appointments.find(apt => apt.id === appointmentId);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_BASE_URL}/appointments/${appointmentId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
-      if (appointmentToDelete) {
-        // TODO: Appel API pour supprimer le RDV
-        // await axios.delete(`${API_BASE_URL}/appointments/${appointmentId}`);
-
-        // 1. Supprimer du localStorage patient
-        const updatedPatientAppointments = appointments.filter(apt => apt.id !== appointmentId);
-        localStorage.setItem(`appointments_patient_${user.id}`, JSON.stringify(updatedPatientAppointments));
-        setAppointments(updatedPatientAppointments);
-
-        // 2. Supprimer du localStorage médecin
-        const doctorId = appointmentToDelete.doctor_id;
-        const doctorAppointments = JSON.parse(localStorage.getItem(`appointments_doctor_${doctorId}`) || '[]');
-        const updatedDoctorAppointments = doctorAppointments.filter(apt => apt.id !== appointmentId);
-        localStorage.setItem(`appointments_doctor_${doctorId}`, JSON.stringify(updatedDoctorAppointments));
-
-        // 3. Libérer le créneau dans le planning
-        const scheduleKey = `doctor_schedule_${doctorId}_${appointmentToDelete.date}`;
-        const currentSchedule = JSON.parse(localStorage.getItem(scheduleKey) || '{}');
-        if (currentSchedule.availableSlots) {
-          currentSchedule.availableSlots = currentSchedule.availableSlots.map(slot => 
-            slot.time === appointmentToDelete.time 
-              ? { ...slot, available: true, reason: null }
-              : slot
-          );
-          localStorage.setItem(scheduleKey, JSON.stringify(currentSchedule));
-        }
-
-        // 4. Créer une notification pour le médecin
-        const cancelNotification = {
-          id: Date.now(),
-          userId: doctorId,
-          type: 'appointment_cancelled',
-          title: 'Rendez-vous annulé',
-          message: `${user.firstName} ${user.lastName || ''} a annulé son rendez-vous du ${new Date(appointmentToDelete.date).toLocaleDateString('fr-FR')} à ${appointmentToDelete.time}`,
-          data: appointmentToDelete,
-          read: false,
-          createdAt: new Date().toISOString()
-        };
-
-        const doctorNotifications = JSON.parse(localStorage.getItem(`notifications_doctor_${doctorId}`) || '[]');
-        doctorNotifications.unshift(cancelNotification);
-        localStorage.setItem(`notifications_doctor_${doctorId}`, JSON.stringify(doctorNotifications));
-
-        setMessage('✅ Rendez-vous annulé avec succès. Le médecin a été notifié.');
-        setTimeout(() => setMessage(''), 3000);
-      }
+      await loadAppointments();
+      setMessage('✅ Rendez-vous annulé avec succès');
     } catch (error) {
       console.error('Erreur suppression RDV:', error);
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            setError('Session expirée. Veuillez vous reconnecter.');
+            break;
+          case 403:
+            setError('Vous n\'êtes pas autorisé à annuler ce rendez-vous.');
+            break;
+          default:
       setError('Erreur lors de l\'annulation du rendez-vous.');
     }
-  };
-
-  // Nettoyer les RDV avec dates invalides
-  const cleanInvalidAppointments = () => {
-    const validAppointments = appointments.filter(apt => {
-      const date = new Date(apt.date);
-      return !isNaN(date.getTime()) && apt.date && apt.time;
-    });
-    
-    if (validAppointments.length !== appointments.length) {
-      localStorage.setItem(`appointments_patient_${user.id}`, JSON.stringify(validAppointments));
-      setAppointments(validAppointments);
-      setMessage('✅ Rendez-vous invalides supprimés.');
-      setTimeout(() => setMessage(''), 3000);
+      } else {
+        setError('Erreur de connexion au serveur.');
+      }
     }
   };
 

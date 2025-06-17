@@ -54,9 +54,9 @@ function DoctorSettings() {
     logUserActivity: true,
     
     // Intégrations
-    orthancServer: 'http://172.20.10.3:8042',
-    orthancUsername: 'admin',
-    orthancPassword: '***',
+    orthancServer: 'http://localhost:8042',
+    orthancUsername: 'orthanc',
+    orthancPassword: 'orthanc',
     emailService: 'gmail',
     smsService: 'orange',
     
@@ -178,9 +178,9 @@ function DoctorSettings() {
         requirePasswordChange: 90,
         allowMultipleSessions: false,
         logUserActivity: true,
-        orthancServer: 'http://172.20.10.3:8042',
-        orthancUsername: 'admin',
-        orthancPassword: '***',
+        orthancServer: 'http://localhost:8042',
+        orthancUsername: 'orthanc',
+        orthancPassword: 'orthanc',
         emailService: 'gmail',
         smsService: 'orange',
         emailNotifications: true,

@@ -37,14 +37,12 @@ ChartJS.register(
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
 function PatientHealthTracking() {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [healthMetrics, setHealthMetrics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedMetric, setSelectedMetric] = useState(null);
-  const [viewMode, setViewMode] = useState('charts'); // 'charts' ou 'table'
-  
   const [newMetric, setNewMetric] = useState({
     metric_type: 'weight',
     value: '',
@@ -52,9 +50,9 @@ function PatientHealthTracking() {
     time: new Date().toTimeString().slice(0, 5),
     notes: ''
   });
-
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [selectedMetric, setSelectedMetric] = useState(null);
+  const [viewMode, setViewMode] = useState('charts');
+  const navigate = useNavigate();
 
   // Types de métriques disponibles
   const metricTypes = [
@@ -67,10 +65,16 @@ function PatientHealthTracking() {
   ];
 
   useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     loadHealthMetrics();
-  }, []);
+  }, [user, navigate]);
 
   const loadHealthMetrics = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
       const token = localStorage.getItem('token');

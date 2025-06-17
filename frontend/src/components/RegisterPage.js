@@ -149,9 +149,10 @@ function RegisterPage() {
     }
 
     setLoading(true);
+    setError('');
     
     try {
-      // Préparer les données selon votre API Flask
+      // Préparer les données selon l'API Flask
       const userData = {
         name: `${formData.firstname} ${formData.lastname}`,
         email: formData.email,
@@ -166,12 +167,20 @@ function RegisterPage() {
         userData.speciality = formData.speciality;
         userData.license_number = formData.licenseNumber;
         userData.work_location = formData.workLocation;
+        userData.invitation_code = formData.invitationCode; // Ajout du code d'invitation pour les médecins
       } else if (formData.userType === 'assistant') {
         userData.invitation_code = formData.invitationCode;
       }
 
+      console.log('Données envoyées:', userData); // Pour le débogage
+
       // Appel API
       const response = await axios.post('http://localhost:5000/register', userData);
+      
+      if (response.data && response.data.error) {
+        setError(response.data.error);
+        return;
+      }
       
       // Stockage email pour connexion
       localStorage.setItem('registeredEmail', formData.email);
@@ -196,8 +205,17 @@ function RegisterPage() {
       console.error('Erreur d\'inscription:', err);
       if (err.response && err.response.data && err.response.data.error) {
         setError(err.response.data.error);
+        toast.error(err.response.data.error, {
+          position: "top-right",
+          autoClose: 5000,
+        });
       } else {
-        setError('Une erreur est survenue lors de l\'inscription. Veuillez réessayer.');
+        const errorMessage = 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.';
+        setError(errorMessage);
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+        });
       }
     } finally {
       setLoading(false);

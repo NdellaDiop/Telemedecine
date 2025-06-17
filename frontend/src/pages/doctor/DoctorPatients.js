@@ -9,6 +9,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import axios from 'axios';
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
 function DoctorPatients() {
   const navigate = useNavigate();
@@ -19,100 +22,62 @@ function DoctorPatients() {
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [activeTab, setActiveTab] = useState('info');
-  
+  const [error, setError] = useState('');
   const [patients, setPatients] = useState([]);
 
   useEffect(() => {
+    if (user && user.id) {
     loadPatients();
-  }, []);
+    }
+  }, [user]);
 
   const loadPatients = async () => {
     try {
-      // Simulation des données pour la démo
-      setPatients([
-        {
-          id: 1,
-          name: 'Aminata Diallo',
-          email: 'aminata.diallo@email.com',
-          phone: '77 123 45 67',
-          birthdate: '1985-03-15',
-          lastVisit: '2025-01-08',
-          nextAppointment: '2025-01-15',
-          status: 'active',
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/doctor/${user.id}/patients`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data && response.data.patients) {
+        // Transformer les données pour correspondre au format attendu par l'interface
+        const formattedPatients = response.data.patients.map(patient => ({
+          id: patient.id,
+          name: patient.name,
+          email: patient.email,
+          phone: patient.phone,
+          birthdate: patient.birthdate,
+          lastVisit: patient.last_appointment,
+          nextAppointment: patient.next_appointment,
+          status: patient.next_appointment ? 'active' : 'inactive',
           medicalRecord: {
-            allergies: 'Pénicilline',
-            medicalHistory: 'Hypertension artérielle',
-            lastWeight: '65 kg',
-            lastTemperature: '36.5°C',
-            lastBloodPressure: '130/80'
+            allergies: patient.allergies || 'Aucune',
+            medicalHistory: patient.medical_history || 'Aucun antécédent',
+            lastWeight: 'Non disponible', // À implémenter avec health_metrics
+            lastTemperature: 'Non disponible', // À implémenter avec health_metrics
+            lastBloodPressure: 'Non disponible' // À implémenter avec health_metrics
           },
-          recentExams: [
-            { type: 'Radio thorax', date: '2024-12-20', status: 'completed' },
-            { type: 'Prise de sang', date: '2024-12-15', status: 'completed' }
-          ]
-        },
-        {
-          id: 2,
-          name: 'Mamadou Sow',
-          email: 'mamadou.sow@email.com',
-          phone: '70 987 65 43',
-          birthdate: '1978-11-22',
-          lastVisit: '2025-01-07',
-          nextAppointment: null,
-          status: 'active',
-          medicalRecord: {
-            allergies: 'Aucune',
-            medicalHistory: 'Diabète type 2',
-            lastWeight: '78 kg',
-            lastTemperature: '36.8°C',
-            lastBloodPressure: '140/90'
-          },
-          recentExams: [
-            { type: 'ECG', date: '2025-01-07', status: 'completed' },
-            { type: 'Glycémie', date: '2025-01-07', status: 'completed' }
-          ]
-        },
-        {
-          id: 3,
-          name: 'Fatou Ndiaye',
-          email: 'fatou.ndiaye@email.com',
-          phone: '76 555 44 33',
-          birthdate: '1990-08-10',
-          lastVisit: '2025-01-05',
-          nextAppointment: '2025-01-20',
-          status: 'active',
-          medicalRecord: {
-            allergies: 'Aspirine',
-            medicalHistory: 'Asthme léger',
-            lastWeight: '58 kg',
-            lastTemperature: '36.7°C',
-            lastBloodPressure: '120/75'
-          },
-          recentExams: [
-            { type: 'Spirométrie', date: '2024-12-28', status: 'completed' }
-          ]
-        },
-        {
-          id: 4,
-          name: 'Ibrahima Fall',
-          email: 'ibrahima.fall@email.com',
-          phone: '78 222 11 99',
-          birthdate: '1995-05-18',
-          lastVisit: '2025-01-03',
-          nextAppointment: null,
-          status: 'inactive',
-          medicalRecord: {
-            allergies: 'Aucune',
-            medicalHistory: 'Aucun antécédent',
-            lastWeight: '72 kg',
-            lastTemperature: '36.6°C',
-            lastBloodPressure: '118/75'
-          },
-          recentExams: []
-        }
-      ]);
+          recentExams: [] // À implémenter avec les examens DICOM
+        }));
+        setPatients(formattedPatients);
+      } else {
+        setError('Format de réponse invalide');
+      }
     } catch (error) {
       console.error('Erreur chargement patients:', error);
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            setError('Session expirée. Veuillez vous reconnecter.');
+            break;
+          case 403:
+            setError('Vous n\'êtes pas autorisé à voir ces patients.');
+            break;
+          default:
+            setError('Erreur lors du chargement des patients.');
+        }
+      } else {
+        setError('Erreur de connexion au serveur.');
+      }
     } finally {
       setLoading(false);
     }

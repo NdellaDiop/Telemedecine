@@ -4,7 +4,8 @@ import { Container, Navbar, Nav, NavDropdown, Offcanvas, Button } from 'react-bo
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faChartLine, faCalendarCheck, faUsers, faCalendarAlt, 
-  faPrescriptionBottleAlt, faBars, faSignOutAlt, faUserMd
+  faPrescriptionBottleAlt, faBars, faSignOutAlt, faUserMd,
+  faFileImage, faCog, faUser
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../context/AuthContext';
 
@@ -44,6 +45,27 @@ const DoctorLayout = () => {
       href: '/doctor/prescriptions',
       icon: faPrescriptionBottleAlt,
       current: location.pathname === '/doctor/prescriptions'
+    },
+    {
+      name: 'Imagerie',
+      href: '/doctor/imaging',
+      icon: faFileImage,
+      current: location.pathname === '/doctor/imaging'
+    }
+  ];
+
+  const bottomNavigation = [
+    {
+      name: 'Profil',
+      href: '/doctor/profile',
+      icon: faUser,
+      current: location.pathname === '/doctor/profile'
+    },
+    {
+      name: 'Paramètres',
+      href: '/doctor/settings',
+      icon: faCog,
+      current: location.pathname === '/doctor/settings'
     }
   ];
 
@@ -75,24 +97,31 @@ const DoctorLayout = () => {
           <Nav className="ms-auto">
             <NavDropdown 
               title={
-                <span>
-                  <FontAwesomeIcon icon={faUserMd} className="me-2" />
-                  Dr. {user?.name || 'Docteur'}
-                </span>
+                <div className="d-flex align-items-center">
+                  <div 
+                    className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
+                    style={{ width: '32px', height: '32px' }}
+                  >
+                    {user?.name?.charAt(0) || 'D'}
+                  </div>
+                  <span className="d-none d-md-inline">Dr. {user?.name}</span>
+                </div>
               } 
               id="doctor-dropdown"
               align="end"
             >
-              <NavDropdown.Item onClick={() => navigate('/doctor/profile')}>
-                Mon profil
+              <NavDropdown.Item as={Link} to="/doctor/profile">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
+                Profil
               </NavDropdown.Item>
-              <NavDropdown.Item onClick={() => navigate('/doctor/settings')}>
+              <NavDropdown.Item as={Link} to="/doctor/settings">
+                <FontAwesomeIcon icon={faCog} className="me-2" />
                 Paramètres
               </NavDropdown.Item>
               <NavDropdown.Divider />
-              <NavDropdown.Item onClick={handleLogout} className="text-danger">
+              <NavDropdown.Item onClick={handleLogout}>
                 <FontAwesomeIcon icon={faSignOutAlt} className="me-2" />
-                Se déconnecter
+                Déconnexion
               </NavDropdown.Item>
             </NavDropdown>
           </Nav>
@@ -101,7 +130,7 @@ const DoctorLayout = () => {
 
       <div className="d-flex">
         {/* Sidebar Desktop */}
-        <div className="d-none d-lg-block bg-white shadow-sm" style={{ width: '250px', minHeight: '100vh' }}>
+        <div className="d-none d-lg-block bg-white shadow-sm" style={{ width: '250px', minHeight: 'calc(100vh - 56px)' }}>
           <div className="p-3 border-bottom">
             <div className="d-flex align-items-center">
               <div 
@@ -132,6 +161,22 @@ const DoctorLayout = () => {
               </Nav.Link>
             ))}
           </Nav>
+
+          <div className="mt-auto p-3 border-top">
+            {bottomNavigation.map((item) => (
+              <Nav.Link
+                key={item.name}
+                as={Link}
+                to={item.href}
+                className={`d-flex align-items-center py-2 px-3 rounded mb-1 ${
+                  item.current ? 'bg-primary text-white' : 'text-dark'
+                }`}
+              >
+                <FontAwesomeIcon icon={item.icon} className="me-3" />
+                {item.name}
+              </Nav.Link>
+            ))}
+          </div>
         </div>
 
         {/* Sidebar Mobile */}
@@ -168,6 +213,23 @@ const DoctorLayout = () => {
                   {item.name}
                 </Nav.Link>
               ))}
+
+              <div className="mt-4 pt-3 border-top">
+                {bottomNavigation.map((item) => (
+                  <Nav.Link
+                    key={item.name}
+                    as={Link}
+                    to={item.href}
+                    className={`d-flex align-items-center py-2 px-3 rounded mb-1 ${
+                      item.current ? 'bg-primary text-white' : 'text-dark'
+                    }`}
+                    onClick={() => setShowSidebar(false)}
+                  >
+                    <FontAwesomeIcon icon={item.icon} className="me-3" />
+                    {item.name}
+                  </Nav.Link>
+                ))}
+              </div>
             </Nav>
           </Offcanvas.Body>
         </Offcanvas>

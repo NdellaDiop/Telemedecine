@@ -20,13 +20,13 @@ comm==0.2.2
 commonmark==0.9.1
 contourpy==1.3.1
 cryptography==3.4.8
-cupshelpers
+#cupshelpers
 cycler==0.12.1
 dbus-python==1.2.18
 debtcollector==2.3.0
 debugpy==1.8.12
 decorator==5.1.1
-defer==1.0.6
+#defer==1.0.6
 Deprecated==1.2.13
 distro==1.7.0
 distro-info==1.1+ubuntu0.2
@@ -40,11 +40,11 @@ docker-compose==1.29.2
 dockerpty==0.4.1
 docopt==0.6.2
 docutils==0.17.1
-duplicity==0.8.21
+#duplicity==0.8.21
 enrich==1.2.6
 exceptiongroup==1.2.2
 executing==2.2.0
-fail2ban==0.11.2
+#fail2ban==0.11.2
 fasteners==0.14.1
 Flask==3.1.0
 flask-cors==5.0.1
@@ -71,7 +71,7 @@ jupyter_core==5.7.2
 jwcrypto==1.0
 keyring==23.5.0
 kiwisolver==1.4.7
-language-selector==0.1
+#language-selector==0.1
 launchpadlib==1.10.16
 lazr.restfulclient==0.14.4
 lazr.uri==1.0.6
@@ -79,7 +79,7 @@ lazy_loader==0.4
 librosa==0.11.0
 llvmlite==0.44.0
 lockfile==0.12.2
-louis==3.20.0
+#louis==3.20.0
 Mako==1.1.3
 Markdown==3.3.6
 MarkupSafe==3.0.2
@@ -142,7 +142,7 @@ PySide6==6.7.0
 PySide6_Addons==6.7.0
 PySide6_Essentials==6.7.0
 pyspark==3.5.4
-python-apt==2.4.0+ubuntu3
+#python-apt==2.4.0+ubuntu3
 python-dateutil==2.9.0.post0
 python-debian==0.1.43+ubuntu1.1
 python-decouple==3.8

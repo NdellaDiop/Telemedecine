@@ -49,9 +49,12 @@ function DoctorAppointments() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (user && user.id) {
+      loadPatients().then(() => {
     loadAppointments();
-    loadPatients();
-  }, []);
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     filterAppointments();
@@ -59,76 +62,49 @@ function DoctorAppointments() {
 
   const loadAppointments = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      
-      // Simuler les données pour la démo
-      const mockAppointments = [
-        {
-          id: 1,
-          patient_name: 'Aminata Diallo',
-          patient_id: 101,
-          appointment_date: '2025-01-11T09:30:00',
-          motif: 'Consultation générale',
-          status: 'scheduled',
-          is_video: false,
-          duration: 30,
-          patient_phone: '+221 77 123 45 67',
-          notes: 'Première consultation'
-        },
-        {
-          id: 2,
-          patient_name: 'Mamadou Sow',
-          patient_id: 102,
-          appointment_date: '2025-01-11T10:15:00',
-          motif: 'Suivi cardiologie',
-          status: 'scheduled',
-          is_video: true,
-          duration: 45,
-          patient_phone: '+221 78 234 56 78',
-          notes: 'Contrôle tension artérielle'
-        },
-        {
-          id: 3,
-          patient_name: 'Fatou Ndiaye',
-          patient_id: 103,
-          appointment_date: '2025-01-11T14:00:00',
-          motif: 'Consultation pédiatrique',
-          status: 'completed',
-          is_video: false,
-          duration: 30,
-          patient_phone: '+221 79 345 67 89',
-          notes: 'Vaccinations'
-        },
-        {
-          id: 4,
-          patient_name: 'Ibrahima Fall',
-          patient_id: 104,
-          appointment_date: '2025-01-12T11:00:00',
-          motif: 'Téléconsultation de suivi',
-          status: 'scheduled',
-          is_video: true,
-          duration: 30,
-          patient_phone: '+221 70 456 78 90',
-          notes: 'Résultats analyses'
-        },
-        {
-          id: 5,
-          patient_name: 'Aissatou Ba',
-          patient_id: 105,
-          appointment_date: '2025-01-10T16:30:00',
-          motif: 'Urgence',
-          status: 'cancelled',
-          is_video: false,
-          duration: 60,
-          patient_phone: '+221 76 567 89 01',
-          notes: 'Annulé par le patient'
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/appointments/${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (Array.isArray(response.data)) {
+        // Transformer les données pour correspondre au format attendu par l'interface
+        const formattedAppointments = response.data.map(apt => {
+          // Trouver les informations du patient dans la liste des patients déjà chargée
+          const patient = patients.find(p => p.id === apt.patient_id);
+          return {
+            id: apt.id,
+            patient_id: apt.patient_id,
+            patient_name: patient ? patient.name : 'Patient inconnu',
+            patient_phone: patient ? patient.phone : '',
+            appointment_date: apt.appointment_datetime,
+            motif: apt.reason,
+            status: apt.status || 'scheduled',
+            is_video: apt.is_video || false,
+            duration: apt.duration || 30,
+            notes: apt.notes
+          };
+        });
+        setAppointments(formattedAppointments);
+      } else {
+        setError('Format de réponse invalide');
+      }
+    } catch (error) {
+      console.error('Erreur chargement rendez-vous:', error);
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            setError('Session expirée. Veuillez vous reconnecter.');
+            break;
+          case 403:
+            setError('Vous n\'êtes pas autorisé à voir ces rendez-vous.');
+            break;
+          default:
+            setError('Erreur lors du chargement des rendez-vous.');
         }
-      ];
-      
-      setAppointments(mockAppointments);
-    } catch (err) {
-      setError('Erreur lors du chargement des rendez-vous');
-      console.error('Erreur:', err);
+      } else {
+        setError('Erreur de connexion au serveur.');
+      }
     } finally {
       setLoading(false);
     }
@@ -136,17 +112,50 @@ function DoctorAppointments() {
 
   const loadPatients = async () => {
     try {
-      // Simuler la liste des patients
-      const mockPatients = [
-        { id: 101, name: 'Aminata Diallo', email: 'aminata.diallo@email.com' },
-        { id: 102, name: 'Mamadou Sow', email: 'mamadou.sow@email.com' },
-        { id: 103, name: 'Fatou Ndiaye', email: 'fatou.ndiaye@email.com' },
-        { id: 104, name: 'Ibrahima Fall', email: 'ibrahima.fall@email.com' },
-        { id: 105, name: 'Aissatou Ba', email: 'aissatou.ba@email.com' }
-      ];
-      setPatients(mockPatients);
-    } catch (err) {
-      console.error('Erreur chargement patients:', err);
+      const token = localStorage.getItem('token');
+      console.log('Chargement des patients pour le docteur:', user.id);
+      const response = await axios.get(`${API_BASE_URL}/doctor/${user.id}/patients`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log('Réponse API patients:', response.data);
+
+      if (response.data && Array.isArray(response.data.patients)) {
+        // Transformer les données pour correspondre au format attendu
+        const formattedPatients = response.data.patients.map(patient => {
+          console.log('Patient brut:', patient);
+          const formatted = {
+            id: patient.id,
+            name: patient.name || patient.full_name || 'Nom inconnu',
+            email: patient.email || '',
+            phone: patient.phone || patient.phone_number || '',
+            birthdate: patient.birthdate || patient.date_of_birth || ''
+          };
+          console.log('Patient formaté:', formatted);
+          return formatted;
+        });
+        console.log('Liste finale des patients:', formattedPatients);
+        setPatients(formattedPatients);
+      } else {
+        console.error('Format de réponse invalide pour les patients:', response.data);
+        setError('Erreur lors du chargement des patients');
+      }
+    } catch (error) {
+      console.error('Erreur chargement patients:', error);
+      if (error.response) {
+        console.error('Détails de l\'erreur:', error.response.data);
+        if (error.response.status === 401) {
+          setError('Session expirée. Veuillez vous reconnecter.');
+        } else if (error.response.status === 403) {
+          setError('Vous n\'êtes pas autorisé à accéder à cette liste de patients.');
+        } else {
+          setError(`Erreur serveur (${error.response.status}): ${error.response.data?.error || 'Erreur inconnue'}`);
+        }
+      } else if (error.request) {
+        setError('Impossible de se connecter au serveur. Vérifiez votre connexion internet.');
+      } else {
+        setError('Erreur inattendue lors du chargement des patients.');
+      }
     }
   };
 
@@ -208,24 +217,26 @@ function DoctorAppointments() {
   const handleCreateAppointment = async (e) => {
     e.preventDefault();
     try {
-      // Simuler la création
-      const newId = Math.max(...appointments.map(a => a.id)) + 1;
-      const patient = patients.find(p => p.id === parseInt(newAppointment.patient_id));
-      
-      const createdAppointment = {
-        id: newId,
-        patient_name: patient?.name || 'Patient inconnu',
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API_BASE_URL}/appointments`,
+        {
         patient_id: parseInt(newAppointment.patient_id),
-        appointment_date: newAppointment.appointment_date,
-        motif: newAppointment.motif,
-        status: 'scheduled',
+          doctor_id: user.id,
+          appointment_datetime: newAppointment.appointment_date,
+          reason: newAppointment.motif,
+          duration: newAppointment.duration,
         is_video: newAppointment.is_video,
-        duration: newAppointment.duration,
-        patient_phone: '+221 XX XXX XX XX',
         notes: newAppointment.notes
-      };
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-      setAppointments([...appointments, createdAppointment]);
+      if (response.data && response.data.appointment_id) {
+        // Recharger les rendez-vous pour avoir les données à jour
+        await loadAppointments();
       setShowCreateModal(false);
       setNewAppointment({
         patient_id: '',
@@ -236,25 +247,73 @@ function DoctorAppointments() {
         notes: ''
       });
       setMessage('✅ Rendez-vous créé avec succès !');
-      
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
+      } else {
       setError('Erreur lors de la création du rendez-vous');
+      }
+    } catch (error) {
+      console.error('Erreur création rendez-vous:', error);
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            setError('Session expirée. Veuillez vous reconnecter.');
+            break;
+          case 403:
+            setError('Vous n\'êtes pas autorisé à créer ce rendez-vous.');
+            break;
+          default:
+            setError('Erreur lors de la création du rendez-vous.');
+        }
+      } else {
+        setError('Erreur de connexion au serveur.');
+      }
     }
-  };
-
-  const handleUpdateStatus = (appointmentId, newStatus) => {
-    setAppointments(appointments.map(apt => 
-      apt.id === appointmentId ? { ...apt, status: newStatus } : apt
-    ));
-    setMessage(`✅ Statut mis à jour: ${newStatus}`);
     setTimeout(() => setMessage(''), 3000);
   };
 
-  const handleDeleteAppointment = (appointmentId) => {
+  const handleUpdateStatus = async (appointmentId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.patch(
+        `${API_BASE_URL}/doctor/appointments/${appointmentId}/status`,
+        { status: newStatus },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      // Recharger les rendez-vous pour avoir les données à jour
+      await loadAppointments();
+    setMessage(`✅ Statut mis à jour: ${newStatus}`);
+    } catch (error) {
+      console.error('Erreur mise à jour statut:', error);
+      setError('Erreur lors de la mise à jour du statut');
+    }
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handlePrescribeMedication = (appointmentId) => {
+    navigate(`/doctor/prescriptions/new?appointment=${appointmentId}`);
+  };
+
+  const handleViewMedicalRecord = (patientId) => {
+    navigate(`/doctor/patients/${patientId}/medical-record`);
+  };
+
+  const handleDeleteAppointment = async (appointmentId) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?')) {
-      setAppointments(appointments.filter(apt => apt.id !== appointmentId));
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`${API_BASE_URL}/appointments/${appointmentId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        // Recharger les rendez-vous pour avoir les données à jour
+        await loadAppointments();
       setMessage('✅ Rendez-vous supprimé');
+      } catch (error) {
+        console.error('Erreur suppression rendez-vous:', error);
+        setError('Erreur lors de la suppression du rendez-vous');
+      }
       setTimeout(() => setMessage(''), 3000);
     }
   };
@@ -521,66 +580,64 @@ function DoctorAppointments() {
                       <td>{appointment.duration} min</td>
                       <td>{getStatusBadge(appointment.status)}</td>
                       <td>
-                        <Dropdown as={ButtonGroup}>
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedAppointment(appointment);
-                              // Ici on pourrait ouvrir un modal de détails
-                            }}
-                          >
-                            <FontAwesomeIcon icon={faEye} />
-                          </Button>
-
-                          <Dropdown.Toggle 
-                            split 
-                            variant="outline-primary" 
-                            size="sm"
-                          />
-
-                          <Dropdown.Menu>
-                            {appointment.status === 'scheduled' && (
-                              <>
-                                {appointment.is_video && (
-                                  <Dropdown.Item onClick={() => startTeleconsultation(appointment.id)}>
-                                    <FontAwesomeIcon icon={faVideo} className="me-2" />
-                                    Démarrer téléconsultation
-                                  </Dropdown.Item>
-                                )}
-                                <Dropdown.Item onClick={() => handleUpdateStatus(appointment.id, 'in_progress')}>
-                                  <FontAwesomeIcon icon={faClock} className="me-2" />
-                                  Marquer en cours
-                                </Dropdown.Item>
-                                <Dropdown.Item onClick={() => handleUpdateStatus(appointment.id, 'completed')}>
-                                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
-                                  Marquer terminé
-                                </Dropdown.Item>
-                                <Dropdown.Divider />
-                              </>
-                            )}
-                            
-                            <Dropdown.Item onClick={() => navigate(`/doctor/patients/${appointment.patient_id}`)}>
-                              <FontAwesomeIcon icon={faUser} className="me-2" />
-                              Voir dossier patient
-                            </Dropdown.Item>
-                            
-                            <Dropdown.Item onClick={() => navigate(`/doctor/prescriptions/new?patient=${appointment.patient_id}`)}>
-                              <FontAwesomeIcon icon={faPrescription} className="me-2" />
-                              Prescrire médicament
-                            </Dropdown.Item>
-                            
-                            <Dropdown.Divider />
-                            
-                            <Dropdown.Item 
-                              onClick={() => handleDeleteAppointment(appointment.id)}
-                              className="text-danger"
+                        <div className="d-flex gap-1">
+                          {appointment.status === 'scheduled' && (
+                            <>
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                onClick={() => handleUpdateStatus(appointment.id, 'in_progress')}
+                                title="Marquer en cours"
+                              >
+                                <FontAwesomeIcon icon={faClock} />
+                              </Button>
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() => handleUpdateStatus(appointment.id, 'completed')}
+                                title="Marquer comme terminé"
+                              >
+                                <FontAwesomeIcon icon={faCheckCircle} />
+                              </Button>
+                            </>
+                          )}
+                          {appointment.status === 'in_progress' && (
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={() => handleUpdateStatus(appointment.id, 'completed')}
+                              title="Marquer comme terminé"
                             >
-                              <FontAwesomeIcon icon={faTrash} className="me-2" />
-                              Supprimer
-                            </Dropdown.Item>
-                          </Dropdown.Menu>
-                        </Dropdown>
+                              <FontAwesomeIcon icon={faCheckCircle} />
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline-info"
+                            size="sm"
+                            onClick={() => handlePrescribeMedication(appointment.id)}
+                            title="Prescrire des médicaments"
+                          >
+                            <FontAwesomeIcon icon={faPrescription} />
+                          </Button>
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => handleViewMedicalRecord(appointment.patient_id)}
+                            title="Voir dossier médical"
+                          >
+                            <FontAwesomeIcon icon={faStethoscope} />
+                          </Button>
+                          {appointment.is_video && appointment.status === 'scheduled' && (
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={() => startTeleconsultation(appointment.id)}
+                              title="Démarrer la téléconsultation"
+                            >
+                              <FontAwesomeIcon icon={faVideo} />
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -620,12 +677,17 @@ function DoctorAppointments() {
                     required
                   >
                     <option value="">Sélectionner un patient</option>
-                    {patients.map(patient => (
+                    {patients && patients.map(patient => (
                       <option key={patient.id} value={patient.id}>
-                        {patient.name} - {patient.email}
+                        {patient.name} ({patient.phone || 'Pas de téléphone'})
                       </option>
                     ))}
                   </Form.Select>
+                  {patients.length === 0 && (
+                    <Form.Text className="text-danger">
+                      Aucun patient disponible. Veuillez d'abord ajouter des patients.
+                    </Form.Text>
+                  )}
                 </Form.Group>
               </Col>
               <Col md={6}>
